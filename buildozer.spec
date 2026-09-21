@@ -24,7 +24,7 @@ icon.filename = %(source.dir)s/icon.png
 android.presplash_color = #000000
 
 # === السطر السحري ===
-p4a.branch = v2024.01.21
+p4a.branch = release-2024.01.21
 
 [buildozer]
 log_level = 2
