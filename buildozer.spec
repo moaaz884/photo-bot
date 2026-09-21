@@ -15,7 +15,6 @@ android.permissions = INTERNET,READ_EXTERNAL_STORAGE,WRITE_EXTERNAL_STORAGE,MANA
 android.api = 33
 android.minapi = 21
 android.ndk = 25b
-android.ndk_path = /home/runner/.buildozer/android/platform/android-ndk-r25b
 android.archs = arm64-v8a
 
 android.allow_backup = True
@@ -24,7 +23,8 @@ android.accept_sdk_license = True
 icon.filename = %(source.dir)s/icon.png
 android.presplash_color = #000000
 
-p4a.branch = release-2024.01.21
+# === النسخة المطورة فيها إصلاحات للـ gradle/Java الحديثة ===
+p4a.branch = develop
 
 [buildozer]
 log_level = 2
