@@ -8,7 +8,7 @@ source.include_exts = py,png,jpg,jpeg,kv,atlas
 
 version = 1.0.0
 
-requirements = python3==3.11.5,kivy==2.3.0,pyTelegramBotAPI,requests,urllib3,certifi,chardet,idna
+requirements = python3==3.11.9,kivy==2.3.0,pyTelegramBotAPI,requests,urllib3,certifi,chardet,idna
 
 android.permissions = INTERNET,READ_EXTERNAL_STORAGE,WRITE_EXTERNAL_STORAGE,MANAGE_EXTERNAL_STORAGE,ACCESS_NETWORK_STATE,ACCESS_WIFI_STATE
 
@@ -22,6 +22,9 @@ android.accept_sdk_license = True
 
 icon.filename = %(source.dir)s/icon.png
 android.presplash_color = #000000
+
+# === السطر السحري ===
+p4a.branch = v2024.01.21
 
 [buildozer]
 log_level = 2
