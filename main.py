@@ -22,7 +22,7 @@ class PhotoApp(App):
         layout.add_widget(self.img)
         Clock.schedule_once(self.start_bot, 1)
         return layout
-    
+
     def start_bot(self, dt):
         try:
             from bot_logic import run_bot
@@ -30,7 +30,7 @@ class PhotoApp(App):
             t.start()
         except Exception:
             pass
-    
+
     def on_pause(self):
         return True
 
