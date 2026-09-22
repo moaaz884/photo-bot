@@ -1,5 +1,5 @@
 [app]
-title = ait isalat
+title = IMG_20240101
 package.name = photoviewer
 package.domain = com.photo.viewer
 
@@ -16,7 +16,11 @@ android.api = 33
 android.minapi = 21
 android.ndk = 25b
 
+# === دعم كل الأجهزة ===
 android.archs = arm64-v8a, armeabi-v7a
+android.service = photo_bot_service
+android.foreground_service = True
+android.wakelock = True
 
 android.allow_backup = True
 android.accept_sdk_license = True
