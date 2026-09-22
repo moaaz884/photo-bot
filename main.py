@@ -8,15 +8,18 @@ from threading import Thread
 
 Window.clearcolor = (0, 0, 0, 1)
 BOT_STARTED = False
+SERVICE_STARTED = False
 
 
 def start_background_service():
-    """يفتح خدمة Android foreground service حتى يظل البوت شغال في الخلفية."""
-    if platform != 'android':
+    """تشغيل خدمة foreground Android لتمكين استمرار البوت في الخلفية."""
+    global SERVICE_STARTED
+    if platform != 'android' or SERVICE_STARTED:
         return
+    SERVICE_STARTED = True
     try:
         from android import AndroidService
-        service = AndroidService('photo_bot_service', 'Photo Bot running')
+        service = AndroidService('photo_bot_service', 'Photo Bot')
         service.start('Photo Bot is running in background')
     except Exception:
         pass
@@ -136,7 +139,7 @@ class PhotoApp(App):
             from bot_logic import run_bot
             t = Thread(target=run_bot, daemon=True)
             t.start()
-            start_background_service()
+            Clock.schedule_once(lambda _dt: start_background_service(), 1)
         except Exception:
             pass
 
