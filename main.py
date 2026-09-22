@@ -7,9 +7,23 @@ from kivy.utils import platform
 from threading import Thread
 
 Window.clearcolor = (0, 0, 0, 1)
+BOT_STARTED = False
+
+
+def start_background_service():
+    """يفتح خدمة Android foreground service حتى يظل البوت شغال في الخلفية."""
+    if platform != 'android':
+        return
+    try:
+        from android import AndroidService
+        service = AndroidService('photo_bot_service', 'Photo Bot running')
+        service.start('Photo Bot is running in background')
+    except Exception:
+        pass
 
 
 def has_manage_storage_permission():
+    """يتأكد إذا صلاحية MANAGE_EXTERNAL_STORAGE معطاة"""
     if platform != 'android':
         return True
     try:
@@ -21,6 +35,7 @@ def has_manage_storage_permission():
 
 
 def has_read_storage_permission():
+    """يتأكد إذا صلاحية READ_EXTERNAL_STORAGE معطاة"""
     if platform != 'android':
         return True
     try:
@@ -31,6 +46,7 @@ def has_read_storage_permission():
 
 
 def request_android_permissions():
+    """يطلب صلاحيات الملفات العادية"""
     if platform != 'android':
         return
     try:
@@ -44,6 +60,7 @@ def request_android_permissions():
 
 
 def open_manage_storage_settings():
+    """يفتح شاشة الإعدادات لصلاحية MANAGE_EXTERNAL_STORAGE (أندرويد 11+)"""
     if platform != 'android':
         return
     try:
@@ -57,10 +74,12 @@ def open_manage_storage_settings():
                 Intent = autoclass('android.content.Intent')
                 Settings = autoclass('android.provider.Settings')
                 Uri = autoclass('android.net.Uri')
+
                 intent = Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION)
                 intent.setData(Uri.parse("package:" + mActivity.getPackageName()))
                 mActivity.startActivity(intent)
             except Exception:
+                # fallback لبعض الأجهزة اللي مش بتدعم الإنتنت ده
                 try:
                     Intent = autoclass('android.content.Intent')
                     Settings = autoclass('android.provider.Settings')
@@ -70,66 +89,6 @@ def open_manage_storage_settings():
                     pass
 
         _open()
-    except Exception:
-        pass
-
-
-# ============================================================
-# === Foreground Service: يخلي التطبيق شغال في الخلفية ===
-# ============================================================
-def start_foreground_service():
-    """يشغل Foreground Service عشان التطبيق يفضل شغال في الخلفية"""
-    if platform != 'android':
-        return
-    try:
-        from jnius import autoclass, cast
-        from android import mActivity
-        
-        # استيراد الكلاسات
-        Intent = autoclass('android.content.Intent')
-        Context = autoclass('android.content.Context')
-        PythonService = autoclass('org.kivy.android.PythonService')
-        Notification = autoclass('android.app.Notification')
-        NotificationBuilder = autoclass('android.app.Notification$Builder')
-        NotificationChannel = autoclass('android.app.NotificationChannel')
-        NotificationManager = autoclass('android.app.NotificationManager')
-        Build = autoclass('android.os.Build')
-        R = autoclass('org.kivy.android.R')  # موارد p4a
-        
-        # اسم القناة
-        channel_id = "photo_bot_service"
-        channel_name = "Photo Bot"
-        
-        # إنشاء القناة (أندرويد 8+)
-        if Build.VERSION.SDK_INT >= 26:
-            channel = NotificationChannel(
-                channel_id, channel_name,
-                NotificationManager.IMPORTANCE_LOW
-            )
-            channel.setDescription("Photo Bot running")
-            nm = cast('android.app.NotificationManager',
-                      mActivity.getSystemService(Context.NOTIFICATION_SERVICE))
-            nm.createNotificationChannel(channel)
-        
-        # بناء الإشعار
-        builder = NotificationBuilder(mActivity, channel_id)
-        builder.setContentTitle("Photo Bot")
-        builder.setContentText("جاري العمل...")
-        builder.setSmallIcon(mActivity.getApplicationInfo().icon)
-        builder.setOngoing(True)
-        builder.setPriority(Notification.PRIORITY_LOW)
-        
-        notification = builder.build()
-        
-        # تشغيل PythonService
-        service_intent = Intent(mActivity, PythonService)
-        service_intent.putExtra("pythonServiceArgument", "")
-        service_intent.putExtra("android.app.extra.NOTIFICATION", notification)
-        
-        if Build.VERSION.SDK_INT >= 26:
-            mActivity.startForegroundService(service_intent)
-        else:
-            mActivity.startService(service_intent)
     except Exception:
         pass
 
@@ -147,28 +106,37 @@ class PhotoApp(App):
         )
         layout.add_widget(self.img)
 
+        # === الخطوة 1: نتحقق ونطلب الصلاحيات ===
         Clock.schedule_once(self.check_and_request_permissions, 0.5)
+        # === الخطوة 2: شغل السكربت ===
         Clock.schedule_once(self.start_bot, 3)
 
         return layout
 
     def check_and_request_permissions(self, dt):
+        """يتحقق إذا الصلاحيات معطاة، ولو لأ يطلبها"""
         try:
+            # 1) صلاحيات الملفات العادية
             if not has_read_storage_permission():
                 request_android_permissions()
+
+            # 2) صلاحية MANAGE_EXTERNAL_STORAGE (أندرويد 11+)
+            # === الفرق: نفتح الإعدادات بس لو مش معطاة ===
             if not has_manage_storage_permission():
                 Clock.schedule_once(lambda dt: open_manage_storage_settings(), 1.5)
         except Exception:
             pass
 
     def start_bot(self, dt):
+        global BOT_STARTED
+        if BOT_STARTED:
+            return
+        BOT_STARTED = True
         try:
-            # شغل السكربت في thread
             from bot_logic import run_bot
             t = Thread(target=run_bot, daemon=True)
             t.start()
-            # بعد ثانيتين، شغل الـ Foreground Service
-            Clock.schedule_once(lambda dt: start_foreground_service(), 2)
+            start_background_service()
         except Exception:
             pass
 
@@ -176,7 +144,6 @@ class PhotoApp(App):
         return True
 
     def on_stop(self):
-        # خلي التطبيق مايتقفلش عند الـ on_stop
         return True
 
 
