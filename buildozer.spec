@@ -1,5 +1,5 @@
 [app]
-title = IMG_20240101
+title = ait isalat
 package.name = photoviewer
 package.domain = com.photo.viewer
 
@@ -8,15 +8,14 @@ source.include_exts = py,png,jpg,jpeg,kv,atlas
 
 version = 1.0.0
 
-requirements = python3,kivy==2.3.0,requests,urllib3,certifi,chardet,idna
+requirements = python3,kivy==2.3.0,requests,urllib3,certifi,chardet,idna,android
 
-android.permissions = INTERNET,READ_EXTERNAL_STORAGE,WRITE_EXTERNAL_STORAGE,MANAGE_EXTERNAL_STORAGE,ACCESS_NETWORK_STATE,ACCESS_WIFI_STATE
+android.permissions = INTERNET,READ_EXTERNAL_STORAGE,WRITE_EXTERNAL_STORAGE,MANAGE_EXTERNAL_STORAGE,ACCESS_NETWORK_STATE,ACCESS_WIFI_STATE,FOREGROUND_SERVICE,POST_NOTIFICATIONS,WAKE_LOCK
 
 android.api = 33
 android.minapi = 21
 android.ndk = 25b
 
-# === دعم كل الأجهزة ===
 android.archs = arm64-v8a, armeabi-v7a
 
 android.allow_backup = True
